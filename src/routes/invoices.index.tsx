@@ -138,7 +138,7 @@ function InvoicesPage() {
                               <Eye className="size-4" />
                             </Link>
                           </Button>
-                          <Button
+                          {/* <Button
                             size="icon"
                             variant="ghost"
                             onClick={() =>
@@ -211,7 +211,7 @@ function InvoicesPage() {
                             }
                           >
                             <Printer className="size-4" />
-                          </Button>
+                          </Button> */}
                         </div>
                       </TableCell>
                     </TableRow>

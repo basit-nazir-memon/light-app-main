@@ -103,62 +103,62 @@ function Dashboard() {
           <StatCard
             label="Total Customers"
             value={String(counts.customers)}
-            delta={{ value: "—", up: true }}
+            // delta={{ value: "—", up: true }}
             icon={Users}
-            spark={sparkline}
+            // spark={sparkline}
           />
           <StatCard
             label="Total Vehicles"
             value={String(counts.vehicles)}
-            delta={{ value: "—", up: true }}
+            // delta={{ value: "—", up: true }}
             icon={Car}
-            spark={sparkline}
+            // spark={sparkline}
           />
           <StatCard
             label="Monthly Income"
             value={gbp(monthly.income)}
-            delta={{ value: "—", up: true }}
+            // delta={{ value: "—", up: true }}
             icon={PoundSterling}
-            spark={sparkline}
+            // spark={sparkline}
             accent="success"
           />
           <StatCard
             label="Parts Sold This Month"
             value={gbp(monthly.partsSold)}
-            delta={{ value: "—", up: true }}
+            // delta={{ value: "—", up: true }}
             icon={Package}
-            spark={sparkline}
+            // spark={sparkline}
             accent="success"
           />
           <StatCard
             label="Pending Invoices"
             value={String(counts.pendingInvoices)}
-            delta={{ value: "—", up: false }}
+            // delta={{ value: "—", up: false }}
             icon={Receipt}
-            spark={sparkline}
+            // spark={sparkline}
             accent="warning"
           />
           <StatCard
             label="Active Jobs"
             value={String(counts.activeJobs)}
-            delta={{ value: "—", up: true }}
+            // delta={{ value: "—", up: true }}
             icon={Wrench}
-            spark={sparkline}
+            // spark={sparkline}
           />
           <StatCard
             label="Completed Jobs"
             value={String(counts.completedJobs)}
-            delta={{ value: "—", up: true }}
+            // delta={{ value: "—", up: true }}
             icon={CheckCircle2}
-            spark={sparkline}
+            // spark={sparkline}
             accent="success"
           />
           <StatCard
             label="Total Quotes"
             value={String(counts.quotes)}
-            delta={{ value: "—", up: true }}
+            // delta={{ value: "—", up: true }}
             icon={FileText}
-            spark={sparkline}
+            // spark={sparkline}
           />
         </div>
 

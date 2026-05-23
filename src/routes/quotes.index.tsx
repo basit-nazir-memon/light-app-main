@@ -145,12 +145,12 @@ function QuotesPage() {
                               <Eye className="size-4" />
                             </Link>
                           </Button>
-                          <Button size="sm" variant="ghost" asChild>
+                          {/* <Button size="sm" variant="ghost" asChild>
                             <Link to="/quotes/$quoteId/edit" params={{ quoteId: qt.id }}>
                               <Pencil className="size-4" />
                             </Link>
-                          </Button>
-                          <Button
+                          </Button> */}
+                          {/* <Button
                             size="sm"
                             variant="ghost"
                             onClick={() =>
@@ -186,7 +186,7 @@ function QuotesPage() {
                             }
                           >
                             <Download className="size-4" />
-                          </Button>
+                          </Button> */}
                         </div>
                       </TableCell>
                     </TableRow>
