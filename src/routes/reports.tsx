@@ -19,6 +19,8 @@ import {
   BarChart3,
   ChevronDown,
   Sparkles,
+  Users,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -42,7 +44,7 @@ import { useCustomers, useInvoices, useJobs, useMechanics, useQuotes, useVehicle
 import { gbp } from "@/lib/currency";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Collapsible,
   CollapsibleContent,
@@ -51,6 +53,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { NeonPatternDefs } from "@/components/NeonPatternDefs";
+import { useNeonCharts } from "@/hooks/use-neon-charts";
 import {
   type DateRange,
   type DateRangePreset,
@@ -90,14 +94,31 @@ const REPORT_CATEGORIES: (ReportCategory | "all")[] = [
 
 const KPI_ACCENTS = [
   "from-emerald-500/20 to-transparent border-emerald-500/30",
-  "from-sky-500/20 to-transparent border-sky-500/30",
-  "from-violet-500/20 to-transparent border-violet-500/30",
-  "from-amber-500/20 to-transparent border-amber-500/30",
-  "from-blue-500/20 to-transparent border-blue-500/30",
-  "from-cyan-500/20 to-transparent border-cyan-500/30",
-  "from-indigo-500/20 to-transparent border-indigo-500/30",
+  "from-primary/20 to-transparent border-primary/30",
+  "from-primary/20 to-transparent border-primary/30",
+  "from-primary/20 to-transparent border-primary/30",
+  "from-primary/20 to-transparent border-primary/30",
+  "from-primary/20 to-transparent border-primary/30",
+  "from-primary/20 to-transparent border-primary/30",
   "from-primary/20 to-transparent border-primary/30",
 ];
+
+const REPORT_ICONS: Record<string, LucideIcon> = {
+  "financial-overview": PoundSterling,
+  "revenue-growth": TrendingUp,
+  "parts-analysis": Package,
+  "labour-analysis": Wrench,
+  "jobs-performance": ClipboardList,
+  "mechanics-performance": Users,
+  "invoices-summary": Receipt,
+  "quotes-summary": FileText,
+  "customers-behavior": Users,
+  "vehicles-analysis": Truck,
+};
+
+function getReportIcon(reportId: string): LucideIcon {
+  return REPORT_ICONS[reportId] || FileBarChart;
+}
 
 const tooltipStyle = {
   backgroundColor: "var(--color-card)",
@@ -105,7 +126,11 @@ const tooltipStyle = {
   borderRadius: 12,
   fontSize: 12,
   boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+  color: "var(--color-foreground)",
 };
+
+const tooltipLabelStyle = { color: "var(--color-foreground)" };
+const tooltipItemStyle = { color: "var(--color-muted-foreground)" };
 
 function ReportsPage() {
   const { data: customers = [] } = useCustomers();
@@ -165,66 +190,59 @@ function ReportsPage() {
 
   return (
     <AppLayout>
+      <style>{`
+        /* Hide global scrollbar for Chrome, Safari and Opera */
+        ::-webkit-scrollbar {
+          display: none !important;
+        }
+        /* Hide global scrollbar for IE, Edge and Firefox */
+        html, body {
+          -ms-overflow-style: none !important;  /* IE and Edge */
+          scrollbar-width: none !important;  /* Firefox */
+        }
+      `}</style>
+      <NeonPatternDefs colors={[
+        "var(--color-chart-1)",
+        "var(--color-chart-2)",
+        "var(--color-chart-3)",
+        "var(--color-chart-4)",
+        "var(--color-chart-5)",
+      ]} />
       <div className="space-y-5 pb-8">
-        {/* Hero + compact date toolbar */}
-        <section className="relative overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/12 via-transparent to-sky-500/8"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-primary/10 blur-3xl"
-            aria-hidden
-          />
-          <div className="relative p-5 md:p-6 space-y-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2 text-primary">
-                  <Sparkles className="size-4" />
-                  <span className="text-xs font-semibold uppercase tracking-widest">Analytics</span>
-                </div>
-                <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">
-                  Reports &amp; Analytics
-                </h1>
-                <p className="text-muted-foreground text-sm max-w-xl">
-                  Detailed tabular and graphical reports — filter by period, preview live, then export PDF.
-                </p>
-              </div>
-              <Badge
-                variant="secondary"
-                className="w-fit shrink-0 gap-1.5 px-3 py-1.5 text-xs font-medium border bg-background/80 backdrop-blur-sm"
-              >
-                <Calendar className="size-3.5 text-primary" />
-                {filtered.rangeLabel}
-              </Badge>
-            </div>
-
-            <DateRangeToolbar
-              preset={preset}
-              setPreset={setPreset}
-              month={month}
-              setMonth={setMonth}
-              year={year}
-              setYear={setYear}
-              from={from}
-              setFrom={setFrom}
-              to={to}
-              setTo={setTo}
-            />
+        {/* Simple header like Staff page, with date range toolbar on the right */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold">Reports &amp; Analytics</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Detailed tabular and graphical reports — filter by period, preview live, then export PDF.
+            </p>
           </div>
-        </section>
+          
+          <DateRangeToolbar
+            preset={preset}
+            setPreset={setPreset}
+            month={month}
+            setMonth={setMonth}
+            year={year}
+            setYear={setYear}
+            from={from}
+            setFrom={setFrom}
+            to={to}
+            setTo={setTo}
+          />
+        </div>
 
         {/* KPI strip */}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 xl:grid-cols-8">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 xl:grid-cols-4">
           {analytics.kpis.map((k, i) => (
-            <KpiTile key={k.label} kpi={k} icon={KPI_ICONS[i % KPI_ICONS.length]} accent={KPI_ACCENTS[i % KPI_ACCENTS.length]} />
+            <KpiTile key={k.label} kpi={k} accent={KPI_ACCENTS[i % KPI_ACCENTS.length]} />
           ))}
         </div>
 
         {/* Main workspace */}
         <div className="grid gap-5 lg:grid-cols-[minmax(0,300px)_1fr] xl:grid-cols-[320px_1fr]">
           <aside className="space-y-3 lg:sticky lg:top-4 lg:self-start">
-            <Card className="overflow-hidden border shadow-sm">
+            <Card className="overflow-hidden border shadow-sm bg-gradient-to-br from-primary/8 via-transparent to-transparent">
               <CardHeader className="py-3 px-4 bg-muted/30 border-b">
                 <CardTitle className="text-sm font-semibold">Report library</CardTitle>
                 <CardDescription className="text-xs">Choose a report to preview</CardDescription>
@@ -247,35 +265,33 @@ function ReportsPage() {
                     </button>
                   ))}
                 </div>
-                <div className="space-y-1 max-h-[min(52vh,520px)] overflow-y-auto pr-0.5 -mr-0.5">
+                <div className="space-y-0 max-h-[min(52vh,520px)] overflow-y-auto pr-0.5 -mr-0.5 no-scrollbar">
                   {visibleReports.map((r) => {
                     const active = selectedId === r.id;
+                    const IconComponent = getReportIcon(r.id);
                     return (
                       <button
                         key={r.id}
                         type="button"
                         onClick={() => setSelectedId(r.id)}
                         className={cn(
-                          "w-full text-left rounded-lg px-3 py-2.5 transition-all border",
+                          "w-full text-left rounded-lg px-3 py-2 transition-all border",
                           active
                             ? "border-primary/50 bg-primary/8 shadow-[inset_3px_0_0_0] shadow-primary"
                             : "border-transparent hover:bg-muted/60 hover:border-border/60",
                         )}
                       >
-                        <div className="flex items-start gap-2.5">
+                        <div className="flex items-center gap-2.5">
                           <div
                             className={cn(
-                              "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
+                              "flex size-7 shrink-0 items-center justify-center rounded-md",
                               active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                             )}
                           >
-                            <FileBarChart className="size-3.5" />
+                            <IconComponent className="size-3.5" />
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-sm leading-tight">{r.title}</div>
-                            <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
-                              {r.description}
-                            </div>
                           </div>
                         </div>
                       </button>
@@ -287,12 +303,9 @@ function ReportsPage() {
           </aside>
 
           <div className="space-y-4 min-w-0">
-            <Card className="overflow-hidden border shadow-sm">
+            <Card className="overflow-hidden border shadow-sm bg-gradient-to-br from-primary/8 via-transparent to-transparent">
               <div className="border-b bg-muted/20 px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">
-                    {CATEGORY_LABELS[selectedReport.category]}
-                  </p>
                   <CardTitle className="text-lg md:text-xl">{selectedReport.title}</CardTitle>
                   <CardDescription className="mt-1 text-sm">{selectedReport.description}</CardDescription>
                 </div>
@@ -380,34 +393,23 @@ function DateRangeToolbar({
   setTo: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center rounded-xl border bg-background/70 backdrop-blur-sm px-3 py-2.5">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shrink-0 px-1">
-        Period
-      </span>
-      <ToggleGroup
-        type="single"
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <Tabs
         value={preset}
         onValueChange={(v) => v && setPreset(v as DateRangePreset)}
-        className="flex flex-wrap justify-start gap-0.5"
       >
-        <ToggleGroupItem value="all" className="h-8 px-3 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-          All time
-        </ToggleGroupItem>
-        <ToggleGroupItem value="month" className="h-8 px-3 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-          Month
-        </ToggleGroupItem>
-        <ToggleGroupItem value="year" className="h-8 px-3 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-          Year
-        </ToggleGroupItem>
-        <ToggleGroupItem value="custom" className="h-8 px-3 text-xs rounded-md data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
-          Custom
-        </ToggleGroupItem>
-      </ToggleGroup>
+        <TabsList>
+          <TabsTrigger value="all">All time</TabsTrigger>
+          <TabsTrigger value="month">Month</TabsTrigger>
+          <TabsTrigger value="year">Year</TabsTrigger>
+          <TabsTrigger value="custom">Custom</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {(preset === "month" || preset === "year" || preset === "custom") && (
         <>
           <Separator orientation="vertical" className="hidden sm:block h-7 mx-1" />
-          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-nowrap min-w-0">
             {preset === "month" && (
               <Select value={month} onValueChange={setMonth}>
                 <SelectTrigger className="h-8 w-full sm:w-[180px] text-xs">
@@ -464,29 +466,25 @@ function DateRangeToolbar({
 
 function KpiTile({
   kpi,
-  icon: Icon,
   accent,
 }: {
   kpi: { label: string; value: string; hint?: string };
-  icon: LucideIcon;
   accent: string;
 }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border bg-card p-3 shadow-sm transition-shadow hover:shadow-md",
+        "relative overflow-hidden rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md",
         "bg-gradient-to-br",
         accent,
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground leading-tight">
-          {kpi.label}
-        </p>
-        <Icon className="size-3.5 shrink-0 text-primary/70" />
+      <div className="text-xs uppercase tracking-wider text-muted-foreground">
+        {kpi.label}
       </div>
-      <p className="font-display text-base sm:text-lg font-bold mt-1.5 tabular-nums leading-none">{kpi.value}</p>
-      {kpi.hint && <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{kpi.hint}</p>}
+      <p className="text-2xl font-display font-bold mt-1 tabular-nums">
+        {kpi.value}
+      </p>
     </div>
   );
 }
@@ -499,6 +497,7 @@ type PreviewProps = {
 
 function ReportPreview({ reportId, analytics, monthlyChart }: PreviewProps) {
   const show = (ids: string[]) => ids.includes(reportId);
+  const { getFill } = useNeonCharts();
 
   return (
     <div className="space-y-8">
@@ -510,11 +509,11 @@ function ReportPreview({ reportId, analytics, monthlyChart }: PreviewProps) {
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => gbp(v)} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} formatter={(v: number) => gbp(v)} />
                 <Legend />
-                <Area type="monotone" dataKey="revenue" stroke="var(--color-chart-1)" fill="var(--color-chart-1)" fillOpacity={0.25} name="Revenue" />
-                <Area type="monotone" dataKey="parts" stroke="var(--color-chart-2)" fill="var(--color-chart-2)" fillOpacity={0.18} name="Parts sold (cost)" />
-                <Area type="monotone" dataKey="labour" stroke="var(--color-chart-3)" fill="var(--color-chart-3)" fillOpacity={0.18} name="Labour revenue" />
+                <Area type="monotone" dataKey="revenue" {...getFill("var(--color-chart-1)")} fillOpacity={1} name="Revenue" />
+                <Area type="monotone" dataKey="parts" {...getFill("var(--color-chart-2)")} fillOpacity={1} name="Parts sold (cost)" />
+                <Area type="monotone" dataKey="labour" {...getFill("var(--color-chart-3)")} fillOpacity={1} name="Labour revenue" />
               </AreaChart>
             </ResponsiveContainer>
           </ChartShell>
@@ -535,7 +534,7 @@ function ReportPreview({ reportId, analytics, monthlyChart }: PreviewProps) {
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} unit="%" />
-                <Tooltip contentStyle={tooltipStyle} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
                 <Line type="monotone" dataKey="growth" stroke="var(--color-chart-1)" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -551,10 +550,18 @@ function ReportPreview({ reportId, analytics, monthlyChart }: PreviewProps) {
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => gbp(v)} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} formatter={(v: number) => gbp(v)} />
                 <Legend />
-                <Bar dataKey="parts" stackId="a" fill="var(--color-chart-1)" name="Parts" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="labour" stackId="a" fill="var(--color-chart-2)" name="Labour" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="parts" stackId="a" name="Parts" radius={[0, 0, 0, 0]}>
+                  {analytics.partsVsLabour.map((_, i) => (
+                    <Cell key={`parts-${i}`} {...getFill("var(--color-chart-1)")} />
+                  ))}
+                </Bar>
+                <Bar dataKey="labour" stackId="a" name="Labour" radius={[6, 6, 0, 0]}>
+                  {analytics.partsVsLabour.map((_, i) => (
+                    <Cell key={`labour-${i}`} {...getFill("var(--color-chart-2)")} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartShell>
@@ -571,10 +578,10 @@ function ReportPreview({ reportId, analytics, monthlyChart }: PreviewProps) {
                 <PieChart>
                   <Pie data={analytics.jobStatus.map((d) => ({ name: d.label, value: d.value }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={72} label>
                     {analytics.jobStatus.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                      <Cell key={i} {...getFill(CHART_COLORS[i % CHART_COLORS.length])} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={tooltipStyle} />
+                  <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
                 </PieChart>
               </ResponsiveContainer>
             </ChartShell>
@@ -587,8 +594,12 @@ function ReportPreview({ reportId, analytics, monthlyChart }: PreviewProps) {
                   <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
                   <YAxis dataKey="name" type="category" width={72} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="jobs" fill="var(--color-chart-3)" radius={[0, 6, 6, 0]} />
+                  <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
+                  <Bar dataKey="jobs" radius={[0, 6, 6, 0]}>
+                    {analytics.mechanicJobs.map((_, i) => (
+                      <Cell key={i} {...getFill("var(--color-chart-3)")} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartShell>
@@ -600,8 +611,8 @@ function ReportPreview({ reportId, analytics, monthlyChart }: PreviewProps) {
       {show(["invoices-summary", "quotes-summary"]) && (
         <PreviewBlock title="Sales pipeline">
           <div className="grid gap-4 md:grid-cols-2">
-            <StatusChart title="Invoices" data={analytics.invoiceStatus} />
-            <StatusChart title="Quotes" data={analytics.quotesByStatus} />
+            <StatusChart title="Invoices" data={analytics.invoiceStatus} getFill={getFill} />
+            <StatusChart title="Quotes" data={analytics.quotesByStatus} getFill={getFill} />
           </div>
           {show(["invoices-summary"]) && <DataTable rows={analytics.invoicesDetail.slice(0, 10)} />}
           {show(["quotes-summary"]) && <DataTable rows={analytics.quotesDetail.slice(0, 10)} />}
@@ -616,8 +627,12 @@ function ReportPreview({ reportId, analytics, monthlyChart }: PreviewProps) {
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" tickFormatter={(v) => `£${v}`} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
                 <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => gbp(v)} />
-                <Bar dataKey="spend" fill="var(--color-chart-1)" radius={[0, 6, 6, 0]} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} formatter={(v: number) => gbp(v)} />
+                <Bar dataKey="spend" radius={[0, 6, 6, 0]}>
+                  {analytics.topCustomers.slice(0, 8).map((_, i) => (
+                    <Cell key={i} {...getFill("var(--color-chart-1)")} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartShell>
@@ -633,8 +648,12 @@ function ReportPreview({ reportId, analytics, monthlyChart }: PreviewProps) {
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="reg" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="score" fill="var(--color-chart-4)" radius={[6, 6, 0, 0]} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
+                <Bar dataKey="score" radius={[6, 6, 0, 0]}>
+                  {analytics.topVehicles.slice(0, 8).map((_, i) => (
+                    <Cell key={i} {...getFill("var(--color-chart-4)")} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartShell>
@@ -665,7 +684,7 @@ function ChartShell({ height, children }: { height: string; children: React.Reac
   );
 }
 
-function StatusChart({ title, data }: { title: string; data: { label: string; value: number }[] }) {
+function StatusChart({ title, data, getFill }: { title: string; data: { label: string; value: number }[]; getFill: (color: string) => { fill: string; stroke: string; strokeWidth: number } }) {
   const chartData = data.map((d) => ({ name: d.label, value: d.value }));
   return (
     <div className="rounded-xl border bg-card/80 p-3">
@@ -676,8 +695,12 @@ function StatusChart({ title, data }: { title: string; data: { label: string; va
             <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 10, fill: "var(--color-muted-foreground)" }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="value" fill="var(--color-chart-2)" radius={[6, 6, 0, 0]} />
+            <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+              {chartData.map((_, i) => (
+                <Cell key={i} {...getFill("var(--color-chart-2)")} />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </ChartShell>

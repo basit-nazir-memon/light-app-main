@@ -27,8 +27,8 @@ function barChartSvg(
   opts: { width?: number; height?: number; dual?: boolean; title?: string } = {},
 ) {
   const w = opts.width ?? 520;
-  const h = opts.height ?? 180;
-  const pad = { t: 28, r: 16, b: 36, l: 48 };
+  const h = opts.height ?? 160;
+  const pad = { t: 24, r: 16, b: 32, l: 48 };
   const innerW = w - pad.l - pad.r;
   const innerH = h - pad.t - pad.b;
   if (!data.length) {
@@ -36,6 +36,19 @@ function barChartSvg(
   }
   const max = Math.max(...data.flatMap((d) => [d.value, d.value2 ?? 0]), 1);
   const barW = innerW / data.length;
+  
+  // Pattern definitions for neon effect
+  const patterns = `
+    <pattern id="neon-1e40af" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-45)">
+      <rect width="6" height="6" fill="#1e40af" opacity="0.10" />
+      <line x1="0" y1="0" x2="0" y2="6" stroke="#1e40af" stroke-width="1.2" opacity="0.6" />
+    </pattern>
+    <pattern id="neon-0ea5e9" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-45)">
+      <rect width="6" height="6" fill="#0ea5e9" opacity="0.10" />
+      <line x1="0" y1="0" x2="0" y2="6" stroke="#0ea5e9" stroke-width="1.2" opacity="0.6" />
+    </pattern>
+  `;
+  
   const bars = data
     .map((d, i) => {
       const x = pad.l + i * barW + barW * 0.15;
@@ -47,22 +60,22 @@ function barChartSvg(
       const label = esc(d.label.slice(0, 8));
       const lx = pad.l + i * barW + barW / 2;
       return `
-        <rect x="${x}" y="${y1}" width="${bw}" height="${h1}" fill="#1e40af" rx="3"/>
-        ${d.value2 != null ? `<rect x="${x + bw + 4}" y="${y2}" width="${bw}" height="${h2}" fill="#0ea5e9" rx="3"/>` : ""}
+        <rect x="${x}" y="${y1}" width="${bw}" height="${h1}" fill="url(#neon-1e40af)" stroke="#1e40af" stroke-width="1.2" rx="3"/>
+        ${d.value2 != null ? `<rect x="${x + bw + 4}" y="${y2}" width="${bw}" height="${h2}" fill="url(#neon-0ea5e9)" stroke="#0ea5e9" stroke-width="1.2" rx="3"/>` : ""}
         <text x="${lx}" y="${h - 8}" text-anchor="middle" font-size="9" fill="#64748b">${label}</text>`;
     })
     .join("");
   const title = opts.title ? `<text x="${pad.l}" y="16" font-size="11" font-weight="600" fill="#334155">${esc(opts.title)}</text>` : "";
   const legend = opts.dual
-    ? `<g transform="translate(${w - 140}, 8)"><rect width="10" height="10" fill="#1e40af"/><text x="14" y="9" font-size="9" fill="#64748b">Primary</text><rect y="14" width="10" height="10" fill="#0ea5e9"/><text x="14" y="23" font-size="9" fill="#64748b">Secondary</text></g>`
+    ? `<g transform="translate(${w - 140}, 8)"><rect width="10" height="10" fill="url(#neon-1e40af)" stroke="#1e40af" stroke-width="0.5"/><text x="14" y="9" font-size="9" fill="#64748b">Primary</text><rect y="14" width="10" height="10" fill="url(#neon-0ea5e9)" stroke="#0ea5e9" stroke-width="0.5"/><text x="14" y="23" font-size="9" fill="#64748b">Secondary</text></g>`
     : "";
-  return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">${title}${legend}${bars}</svg>`;
+  return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg"><defs>${patterns}</defs>${title}${legend}${bars}</svg>`;
 }
 
 function lineChartSvg(data: SeriesPoint[], opts: { width?: number; height?: number; title?: string } = {}) {
   const w = opts.width ?? 520;
-  const h = opts.height ?? 160;
-  const pad = { t: 24, r: 16, b: 32, l: 44 };
+  const h = opts.height ?? 140;
+  const pad = { t: 22, r: 16, b: 28, l: 44 };
   const innerW = w - pad.l - pad.r;
   const innerH = h - pad.t - pad.b;
   if (!data.length) {
@@ -97,6 +110,54 @@ function pieLegendSvg(data: SeriesPoint[]) {
     .join("")}</tbody></table>`;
 }
 
+function pieChartSvg(data: SeriesPoint[], opts: { width?: number; height?: number; title?: string } = {}) {
+  const w = opts.width ?? 280;
+  const h = opts.height ?? 180;
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(w, h) / 2 - 20;
+  const total = data.reduce((s, d) => s + d.value, 0) || 1;
+  const colors = ["#1e40af", "#0ea5e9", "#38bdf8", "#64748b", "#94a3b8", "#cbd5e1"];
+  
+  if (!data.length || total === 0) {
+    return `<svg width="${w}" height="${h}"><text x="${w / 2}" y="${h / 2}" text-anchor="middle" fill="#94a3b8" font-size="12">No data</text></svg>`;
+  }
+  
+  // Create pattern definitions for each color
+  const patternDefs = colors.map((color, i) => {
+    const patternId = `neon-${color.replace(/#/g, "")}`;
+    return `
+      <pattern id="${patternId}" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(-45)">
+        <rect width="6" height="6" fill="${color}" opacity="0.10" />
+        <line x1="0" y1="0" x2="0" y2="6" stroke="${color}" stroke-width="1.2" opacity="0.6" />
+      </pattern>
+    `;
+  }).join("");
+  
+  let currentAngle = -Math.PI / 2;
+  const slices = data.map((d, i) => {
+    const sliceAngle = (d.value / total) * 2 * Math.PI;
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + sliceAngle;
+    
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy + r * Math.sin(endAngle);
+    
+    const largeArc = sliceAngle > Math.PI ? 1 : 0;
+    const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    const color = colors[i % colors.length];
+    const patternId = `neon-${color.replace(/#/g, "")}`;
+    
+    currentAngle = endAngle;
+    return `<path d="${pathData}" fill="url(#${patternId})" stroke="${color}" stroke-width="1.5"/>`;
+  }).join("");
+  
+  const title = opts.title ? `<text x="${cx}" y="16" text-anchor="middle" font-size="11" font-weight="600" fill="#334155">${esc(opts.title)}</text>` : "";
+  return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg"><defs>${patternDefs}</defs>${title}${slices}</svg>`;
+}
+
 function kpiGrid(kpis: KpiRow[]) {
   return `<div class="kpi-grid">${kpis
     .map(
@@ -125,33 +186,33 @@ function dataTable(rows: TableRow[], maxRows = 25) {
 }
 
 const BASE_STYLES = `
-@page { margin: 18mm; }
-body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 32px; color: #0f172a; background: #fff; max-width: 900px; margin: auto; font-size: 13px; line-height: 1.45; }
-h1,h2,h3 { font-family: Georgia, 'Times New Roman', serif; letter-spacing: -0.02em; margin: 0 0 8px; }
-.hdr { display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #0f172a; padding-bottom: 20px; margin-bottom: 24px; }
+@page { margin: 15mm; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; color: #0f172a; background: #fff; max-width: 900px; margin: auto; font-size: 12px; line-height: 1.4; }
+h1,h2,h3 { font-family: Georgia, 'Times New Roman', serif; letter-spacing: -0.02em; margin: 0 0 6px; }
+.hdr { display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 18px; }
 .brand-logo { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.brand-logo img { max-height: 56px; max-width: 140px; width: auto; height: auto; object-fit: contain; }
-.meta { text-align: right; font-size: 12px; color: #64748b; }
-.meta h2 { color: #1e40af; font-size: 20px; }
-.section { margin: 28px 0; page-break-inside: avoid; }
-.section h3 { font-size: 15px; color: #1e40af; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; }
-.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
-.kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
-.kpi .label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b; }
-.kpi .val { font-size: 18px; font-weight: 700; color: #1e40af; margin-top: 4px; }
-.kpi .hint { font-size: 10px; color: #94a3b8; margin-top: 2px; }
-.chart-row { display: flex; flex-wrap: wrap; gap: 16px; margin: 12px 0; }
-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
-th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; padding: 8px 6px; border-bottom: 2px solid #e2e8f0; }
-td { padding: 8px 6px; border-bottom: 1px solid #f1f5f9; }
+.brand-logo img { max-height: 52px; max-width: 130px; width: auto; height: auto; object-fit: contain; }
+.meta { text-align: right; font-size: 11px; color: #64748b; }
+.meta h2 { color: #1e40af; font-size: 18px; margin-bottom: 2px; }
+.section { margin: 20px 0; page-break-inside: avoid; }
+.section h3 { font-size: 13px; color: #1e40af; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+.kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 7px; padding: 8px 10px; }
+.kpi .label { font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b; }
+.kpi .val { font-size: 16px; font-weight: 700; color: #1e40af; margin-top: 3px; }
+.kpi .hint { font-size: 9px; color: #94a3b8; margin-top: 2px; }
+.chart-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px; }
+th { text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; padding: 5px 6px; border-bottom: 2px solid #e2e8f0; }
+td { padding: 5px 6px; border-bottom: 1px solid #f1f5f9; }
 .right { text-align: right; }
-.muted { color: #94a3b8; font-size: 11px; }
-.mini-table td { padding: 4px 8px; border: none; font-size: 11px; }
-.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 10px; color: #64748b; display: flex; justify-content: space-between; }
-.sig { margin-top: 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
-.sig .line { border-top: 1px solid #0f172a; padding-top: 6px; font-size: 11px; color: #64748b; }
+.muted { color: #94a3b8; font-size: 10px; }
+.mini-table td { padding: 3px 6px; border: none; font-size: 10px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.footer { margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 9px; color: #64748b; display: flex; justify-content: space-between; }
+.sig { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.sig .line { border-top: 1px solid #0f172a; padding-top: 5px; font-size: 10px; color: #64748b; }
 `;
 
 function reportHeader(title: string, rangeLabel: string) {
@@ -275,8 +336,8 @@ function buildSections(reportId: string, a: ReportAnalytics, rangeLabel: string)
         { label: "In progress", value: String(t.jobsTotal - t.jobsCompleted) },
       ])}
       <div class="two-col">
-        <div><h4 style="font-size:12px;">Status distribution</h4>${pieLegendSvg(a.jobStatus)}</div>
-        <div class="chart-row">${barChartSvg(a.jobStatus, { title: "Jobs by status" })}</div>
+        <div class="chart-row">${pieChartSvg(a.jobStatus, { width: 240, height: 160, title: "Job statuses" })}</div>
+        <div class="chart-row">${barChartSvg(a.jobStatus, { width: 240, height: 160, title: "Jobs by status" })}</div>
       </div>
       <h4 style="font-size:12px;margin:16px 0 6px;">Job register</h4>
       ${dataTable(a.jobsDetail, 40)}`,
@@ -302,8 +363,8 @@ function buildSections(reportId: string, a: ReportAnalytics, rangeLabel: string)
         { label: "Collected", value: gbp(t.paidRevenue) },
       ])}
       <div class="two-col">
-        <div>${pieLegendSvg(a.invoiceStatus)}</div>
-        <div class="chart-row">${barChartSvg(a.invoiceStatus, { title: "By status" })}</div>
+        <div class="chart-row">${pieChartSvg(a.invoiceStatus, { width: 240, height: 160, title: "Invoice statuses" })}</div>
+        <div class="chart-row">${barChartSvg(a.invoiceStatus, { width: 240, height: 160, title: "By status" })}</div>
       </div>
       <h4 style="font-size:12px;margin:16px 0 6px;">Invoice register</h4>
       ${dataTable(a.invoicesDetail, 40)}`,
@@ -319,8 +380,8 @@ function buildSections(reportId: string, a: ReportAnalytics, rangeLabel: string)
         { label: "Approval rate", value: t.quotesTotal ? `${Math.round((t.quotesApproved / t.quotesTotal) * 100)}%` : "—" },
       ])}
       <div class="two-col">
-        <div>${pieLegendSvg(a.quotesByStatus)}</div>
-        <div class="chart-row">${barChartSvg(a.quotesByStatus, { title: "Quotes by status" })}</div>
+        <div class="chart-row">${pieChartSvg(a.quotesByStatus, { width: 240, height: 160, title: "Quote statuses" })}</div>
+        <div class="chart-row">${barChartSvg(a.quotesByStatus, { width: 240, height: 160, title: "Quotes by status" })}</div>
       </div>
       <h4 style="font-size:12px;margin:16px 0 6px;">Quote register</h4>
       ${dataTable(a.quotesDetail, 40)}`,

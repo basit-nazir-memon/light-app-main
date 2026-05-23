@@ -14,6 +14,8 @@ import {
 } from "recharts";
 import { useDashboard } from "@/lib/store";
 import { gbp, fmtDate } from "@/lib/currency";
+import { NeonPatternDefs } from "@/components/NeonPatternDefs";
+import { useNeonCharts } from "@/hooks/use-neon-charts";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -23,7 +25,11 @@ const tooltipStyle = {
   borderRadius: 12,
   fontSize: 12,
   boxShadow: "var(--shadow-soft)",
+  color: "var(--color-foreground)",
 };
+
+const tooltipLabelStyle = { color: "var(--color-foreground)" };
+const tooltipItemStyle = { color: "var(--color-muted-foreground)" };
 
 const pieColors = [
   "var(--color-chart-3)",
@@ -34,6 +40,7 @@ const pieColors = [
 
 function Dashboard() {
   const { data, isLoading, isError, error } = useDashboard();
+  const { getFill } = useNeonCharts();
 
   if (isLoading) {
     return (
@@ -58,6 +65,13 @@ function Dashboard() {
 
   return (
     <AppLayout>
+      <NeonPatternDefs colors={[
+        "var(--color-chart-1)",
+        "var(--color-chart-2)",
+        "var(--color-chart-3)",
+        "var(--color-chart-4)",
+        "var(--color-chart-5)",
+      ]} />
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -154,12 +168,6 @@ function Dashboard() {
             <CardContent className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyRevenue}>
-                  <defs>
-                    <linearGradient id="gRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.5} />
-                      <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
                   <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="month"
@@ -173,14 +181,13 @@ function Dashboard() {
                     tickLine={false}
                     tickFormatter={(v) => `£${v}`}
                   />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => gbp(v)} />
+                  <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} formatter={(v: number) => gbp(v)} />
                   <Area
                     type="monotone"
                     dataKey="revenue"
                     name="Revenue"
-                    stroke="var(--color-chart-1)"
-                    strokeWidth={2.5}
-                    fill="url(#gRevenue)"
+                    {...getFill("var(--color-chart-1)")}
+                    fillOpacity={1}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -201,10 +208,10 @@ function Dashboard() {
                     paddingAngle={3}
                   >
                     {invoiceStatusBreakdown.map((_, i) => (
-                      <Cell key={i} fill={pieColors[i % pieColors.length]} />
+                      <Cell key={i} {...getFill(pieColors[i % pieColors.length])} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={tooltipStyle} />
+                  <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -232,8 +239,12 @@ function Dashboard() {
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="jobs" fill="var(--color-chart-1)" radius={[8, 8, 0, 0]} />
+                <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
+                <Bar dataKey="jobs" radius={[8, 8, 0, 0]}>
+                  {mechanicJobs.map((_, i) => (
+                    <Cell key={i} {...getFill("var(--color-chart-1)")} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
