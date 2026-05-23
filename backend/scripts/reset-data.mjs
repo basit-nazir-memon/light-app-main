@@ -39,32 +39,29 @@ function removeDirContents(dir) {
   return removed;
 }
 
+function resolveBackupDir(stored) {
+  const fallback = path.join(dataDir, "backups");
+  if (!stored || !String(stored).trim()) return fallback;
+  const raw = String(stored).trim();
+  if (!path.isAbsolute(raw)) return path.join(dataDir, raw.replace(/^\.[/\\]/, ""));
+  return path.resolve(raw);
+}
+
 function loadBackupDir() {
-  if (!fs.existsSync(backupSettingsPath)) {
-    return path.join(dataDir, "backups");
-  }
+  if (!fs.existsSync(backupSettingsPath)) return path.join(dataDir, "backups");
   try {
     const parsed = JSON.parse(fs.readFileSync(backupSettingsPath, "utf8"));
-    return path.resolve(parsed.backupDirectory || path.join(dataDir, "backups"));
+    return resolveBackupDir(parsed.backupDirectory);
   } catch {
     return path.join(dataDir, "backups");
   }
 }
 
 function resetBackupSettings() {
-  const defaultDir = path.join(dataDir, "backups");
-  let backupDirectory = defaultDir;
-  if (fs.existsSync(backupSettingsPath)) {
-    try {
-      const parsed = JSON.parse(fs.readFileSync(backupSettingsPath, "utf8"));
-      if (parsed.backupDirectory) backupDirectory = path.resolve(parsed.backupDirectory);
-    } catch {
-      /* use default */
-    }
-  }
+  const backupDirectory = path.join(dataDir, "backups");
   fs.writeFileSync(
     backupSettingsPath,
-    JSON.stringify({ backupDirectory, lastBackupAt: null }, null, 2),
+    JSON.stringify({ backupDirectory: "backups", lastBackupAt: null }, null, 2),
     "utf8",
   );
   return backupDirectory;

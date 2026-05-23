@@ -3,13 +3,27 @@
 
 function Get-ProjectRoot {
   if ($script:ProjectRoot) { return $script:ProjectRoot }
-  $setupDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-  if (Test-Path (Join-Path $setupDir "package.json")) {
-    $script:ProjectRoot = $setupDir
+
+  # This file lives in setup\scripts — project root is two levels up.
+  $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+  if (Test-Path (Join-Path $root "package.json")) {
+    $script:ProjectRoot = $root
     return $script:ProjectRoot
   }
-  $script:ProjectRoot = Split-Path $PSScriptRoot -Parent
-  return $script:ProjectRoot
+
+  # Fallback: setup\Install-*.ps1 with $script:ProjectRoot already set by caller.
+  $installed = Join-Path (Split-Path $PSScriptRoot -Parent) ".installed.json"
+  if (Test-Path $installed) {
+    try {
+      $meta = Get-Content $installed -Raw | ConvertFrom-Json
+      if ($meta.projectRoot -and (Test-Path (Join-Path $meta.projectRoot "package.json"))) {
+        $script:ProjectRoot = $meta.projectRoot
+        return $script:ProjectRoot
+      }
+    } catch { }
+  }
+
+  throw "Could not find Yova Auto project root (expected package.json next to setup folder)."
 }
 
 function Get-SetupDir {

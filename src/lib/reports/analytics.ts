@@ -304,9 +304,9 @@ export function buildAnalytics(data: FilteredData): ReportAnalytics {
   const avgInvoice = invoices.length ? revenue / invoices.length : 0;
 
   const kpis: KpiRow[] = [
-    { label: "Total revenue", value: `£${revenue.toLocaleString("en-GB", { minimumFractionDigits: 2 })}` },
+    { label: "Total revenue (Inc. VAT)", value: `£${revenue.toLocaleString("en-GB", { minimumFractionDigits: 2 })}` },
     {
-      label: "Parts sold (cost)",
+      label: "Parts Revenue",
       value: `£${partsRevenue.toLocaleString("en-GB", { minimumFractionDigits: 2 })}`,
       hint: "From invoices in period",
     },

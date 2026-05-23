@@ -2,6 +2,7 @@ import { Router } from "express";
 import fs from "fs";
 import path from "path";
 import { getDataDir, getDbPath } from "./db.js";
+import { defaultBackupDirectory } from "./backup-paths.js";
 import {
   loadBackupSettings,
   setBackupDirectory,
@@ -23,7 +24,7 @@ backupApi.get("/settings", (_req, res) => {
     lastBackupAt: settings.lastBackupAt,
     databasePath: getDbPath(),
     dataDirectory: getDataDir(),
-    defaultBackupDirectory: path.join(getDataDir(), "backups"),
+    defaultBackupDirectory: defaultBackupDirectory(),
   });
 });
 

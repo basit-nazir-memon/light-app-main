@@ -102,6 +102,15 @@ function Invoke-YovaAutoInstall {
     Write-EnvFile -Path (Join-Path (Join-Path $ProjectRoot "backend") ".env") -Lines @(
       "PORT=$($SetupConfig.BackendPort)"
     )
+    $backupSettingsPath = Join-Path (Join-Path $ProjectRoot "backend") "data\backup-settings.json"
+    $backupDataDir = Join-Path (Join-Path $ProjectRoot "backend") "data"
+    if (-not (Test-Path $backupDataDir)) {
+      New-Item -ItemType Directory -Path $backupDataDir -Force | Out-Null
+    }
+    @{
+      backupDirectory = "backups"
+      lastBackupAt    = $null
+    } | ConvertTo-Json | Set-Content -Path $backupSettingsPath -Encoding UTF8
     Complete-Step "config" "Configuration saved" 25
 
     Set-Step "npm-frontend" "Installing frontend packages..." 28
@@ -131,19 +140,19 @@ function Invoke-YovaAutoInstall {
 
     Set-Step "launchers" "Creating launcher scripts..." 75
     $startScript = Join-Path $SetupDir "scripts\start-yova.ps1"
+    # Use %~dp0 so launchers work if the project folder is moved to another path or PC.
     Write-LauncherBat -Path (Join-Path $ProjectRoot "YovaAuto-Start.bat") -Lines @(
       "@echo off"
       "title $($SetupConfig.AppName) - Starting"
-      "cd /d `"$ProjectRoot`""
-      "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$startScript`""
+      "cd /d `"%~dp0`""
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"%~dp0setup\scripts\start-yova.ps1`""
       "exit /b 0"
     )
-    $openScript = Join-Path $SetupDir "scripts\open-app.ps1"
     Write-LauncherBat -Path (Join-Path $ProjectRoot "YovaAuto-Open.bat") -Lines @(
       "@echo off"
       "title $($SetupConfig.AppName)"
-      "cd /d `"$ProjectRoot`""
-      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$openScript`""
+      "cd /d `"%~dp0`""
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"%~dp0setup\scripts\open-app.ps1`""
       "exit /b 0"
     )
     $bp = $SetupConfig.BackendPort

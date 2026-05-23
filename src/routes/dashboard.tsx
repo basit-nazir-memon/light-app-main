@@ -115,7 +115,7 @@ function Dashboard() {
             // spark={sparkline}
           />
           <StatCard
-            label="Monthly Income"
+            label="Monthly Income (Inc. VAT)"
             value={gbp(monthly.income)}
             // delta={{ value: "—", up: true }}
             icon={PoundSterling}

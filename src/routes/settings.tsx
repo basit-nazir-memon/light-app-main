@@ -406,7 +406,7 @@ function SettingsPage() {
                   Backups &amp; database
                 </CardTitle>
             <CardDescription>
-              Snapshot the SQLite database, export a copy, or restore from a file. The API must be running locally.
+              Snapshot the SQLite database, export a copy, or restore from a file.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -416,7 +416,7 @@ function SettingsPage() {
               <AlertDescription>
                 Loading a database file <strong>replaces all current data</strong> (customers, vehicles, jobs, quotes, invoices).
                 A safety backup is created automatically in your backup folder before any restore.
-                Keep the backend running and reload the app after restore.
+                You must reload the app after restore.
               </AlertDescription>
             </Alert>
 

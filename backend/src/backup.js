@@ -3,6 +3,11 @@ import path from "path";
 import os from "os";
 import { randomUUID } from "crypto";
 import { db, getDataDir, getDbPath, reopenDatabase } from "./db.js";
+import {
+  defaultBackupDirectory,
+  resolveBackupDirectory,
+  normalizeBackupDirectoryForStorage,
+} from "./backup-paths.js";
 
 const SETTINGS_FILE = "backup-settings.json";
 
@@ -11,7 +16,7 @@ function settingsPath() {
 }
 
 const defaultSettings = () => ({
-  backupDirectory: path.join(getDataDir(), "backups"),
+  backupDirectory: defaultBackupDirectory(),
   lastBackupAt: null,
 });
 
@@ -21,8 +26,9 @@ export function loadBackupSettings() {
   if (!fs.existsSync(file)) return defaults;
   try {
     const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+    const resolvedDir = resolveBackupDirectory(parsed.backupDirectory);
     return {
-      backupDirectory: parsed.backupDirectory || defaults.backupDirectory,
+      backupDirectory: resolvedDir,
       lastBackupAt: parsed.lastBackupAt ?? null,
     };
   } catch {
@@ -31,9 +37,17 @@ export function loadBackupSettings() {
 }
 
 export function saveBackupSettings(partial) {
-  const next = { ...loadBackupSettings(), ...partial };
+  const current = loadBackupSettings();
+  const next = { ...current, ...partial };
+  if (partial.backupDirectory !== undefined) {
+    next.backupDirectory = resolveBackupDirectory(partial.backupDirectory);
+  }
   ensureDirectory(next.backupDirectory);
-  fs.writeFileSync(settingsPath(), JSON.stringify(next, null, 2), "utf8");
+  const toStore = {
+    backupDirectory: normalizeBackupDirectoryForStorage(next.backupDirectory),
+    lastBackupAt: next.lastBackupAt ?? null,
+  };
+  fs.writeFileSync(settingsPath(), JSON.stringify(toStore, null, 2), "utf8");
   return next;
 }
 
@@ -165,7 +179,7 @@ export function setBackupDirectory(backupDirectory) {
   if (!backupDirectory?.trim()) {
     throw new Error("Backup directory is required");
   }
-  const resolved = path.resolve(backupDirectory.trim());
+  const resolved = resolveBackupDirectory(backupDirectory.trim());
   ensureDirectory(resolved);
   return saveBackupSettings({ backupDirectory: resolved });
 }

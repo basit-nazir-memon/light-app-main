@@ -4,7 +4,7 @@ Use this when the PC has **no Node.js, npm, or SQLite** installed. One setup run
 
 ## Quick start
 
-1. Copy the whole project folder to the PC (e.g. `C:\YovaAuto\light-app-main`).
+1. Copy the whole project folder anywhere on the PC (e.g. `D:\Garage\YovaAuto` — path does not matter).
 2. Double-click **`setup\Setup-YovaAuto.bat`**.
 3. Wait until setup finishes (first run downloads Node.js and npm packages — **internet required**).
 4. Use the desktop shortcut **Yova Auto** (opens `http://127.0.0.1:8081` in your browser).
@@ -37,6 +37,17 @@ View in Windows: **Task Scheduler** → Task Scheduler Library, or run **`YovaAu
 Tasks run via `wscript.exe` with window style hidden. Logs: `setup\logs\backend.log`, `frontend.log`.
 
 **Note:** Tasks run when a user **signs in** to Windows (typical for a garage PC). They do not run before login unless you configure a system-level task separately.
+
+## Moving the project folder
+
+Launcher scripts (`YovaAuto-*.bat`) use **`%~dp0`** (folder where the `.bat` lives), so they work on any drive or path.
+
+After you move or copy the project to another PC or folder:
+
+1. Run **`setup\Setup-YovaAuto.bat`** again, **or**
+2. Run **`setup\scripts\register-autostart.ps1`** in PowerShell (re-registers Scheduled Tasks for the new path).
+
+Backup snapshots are stored under **`backend\data\backups`** by default (relative path in settings).
 
 ## After setup
 
