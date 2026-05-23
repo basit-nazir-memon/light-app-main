@@ -93,8 +93,8 @@ function ReportsPage() {
     labour: m.labour,
   }));
 
-  const handleDownload = (reportId: string, title: string) => {
-    const ok = downloadReportPdf(reportId, title, filtered.rangeLabel, analytics);
+  const handleDownload = async (reportId: string, title: string) => {
+    const ok = await downloadReportPdf(reportId, title, filtered.rangeLabel, analytics);
     if (ok) toast.success(`${title} — open print dialog and choose Save as PDF`);
     else toast.error("Pop-up blocked — allow pop-ups to download PDF");
   };
@@ -239,7 +239,7 @@ function ReportsPage() {
                   <CardTitle>{selectedReport.title}</CardTitle>
                   <CardDescription>{selectedReport.description}</CardDescription>
                 </div>
-                <Button onClick={() => handleDownload(selectedReport.id, selectedReport.title)}>
+                <Button onClick={() => void handleDownload(selectedReport.id, selectedReport.title)}>
                   <Download className="size-4 mr-2" />
                   Download PDF
                 </Button>
@@ -263,7 +263,7 @@ function ReportsPage() {
                     key={r.id}
                     variant="outline"
                     size="sm"
-                    onClick={() => handleDownload(r.id, r.title)}
+                    onClick={() => void handleDownload(r.id, r.title)}
                   >
                     <Download className="size-3.5 mr-1.5" />
                     {r.title}

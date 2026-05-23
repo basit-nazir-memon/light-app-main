@@ -154,7 +154,7 @@ function QuotesPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() =>
-                              downloadDocumentPdf({
+                              void downloadDocumentPdf({
                                 kind: "Quote",
                                 doc: qt,
                                 customer: qt.customerName

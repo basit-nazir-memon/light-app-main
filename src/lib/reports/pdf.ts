@@ -1,4 +1,9 @@
 import { company } from "@/lib/mockData";
+import {
+  fetchBusinessSettings,
+  defaultBusinessSettings,
+  type BusinessSettings,
+} from "@/lib/business-settings-api";
 import type { ReportAnalytics, KpiRow, SeriesPoint, TableRow } from "./analytics";
 import logoUrl from "@/assets/logo.png";
 
@@ -175,16 +180,24 @@ function reportHeader(title: string, rangeLabel: string) {
 </div>`;
 }
 
-function reportFooter() {
+function reportFooter(footer: BusinessSettings) {
   return `
 <div class="sig">
   <div class="line">Prepared by — Yova Auto Management</div>
   <div class="line">Authorised signature</div>
 </div>
 <div class="footer">
-  <div>${esc(company.address)} · VAT ${esc(company.vatNumber)} · ${esc(company.email)}</div>
+  <div>${esc(company.address)} · VAT ${esc(footer.vatNumber)} · ${esc(footer.email)} · ${esc(footer.phone)}</div>
   <div>© ${new Date().getFullYear()} ${esc(company.name)}</div>
 </div>`;
+}
+
+async function resolveReportFooter(): Promise<BusinessSettings> {
+  try {
+    return await fetchBusinessSettings();
+  } catch {
+    return defaultBusinessSettings();
+  }
 }
 
 type Section = { title: string; html: string };
@@ -336,7 +349,13 @@ function buildSections(reportId: string, a: ReportAnalytics, rangeLabel: string)
   return sections;
 }
 
-export function renderReportHtml(reportId: string, title: string, rangeLabel: string, analytics: ReportAnalytics) {
+export function renderReportHtml(
+  reportId: string,
+  title: string,
+  rangeLabel: string,
+  analytics: ReportAnalytics,
+  footer: BusinessSettings,
+) {
   const sections = buildSections(reportId, analytics, rangeLabel);
   const body = sections
     .map((s) => `<div class="section"><h3>${esc(s.title)}</h3>${s.html}</div>`)
@@ -345,12 +364,18 @@ export function renderReportHtml(reportId: string, title: string, rangeLabel: st
 <style>${BASE_STYLES}</style></head><body>
 ${reportHeader(title, rangeLabel)}
 ${body}
-${reportFooter()}
+${reportFooter(footer)}
 </body></html>`;
 }
 
-export function downloadReportPdf(reportId: string, title: string, rangeLabel: string, analytics: ReportAnalytics) {
-  const html = renderReportHtml(reportId, title, rangeLabel, analytics);
+export async function downloadReportPdf(
+  reportId: string,
+  title: string,
+  rangeLabel: string,
+  analytics: ReportAnalytics,
+) {
+  const footer = await resolveReportFooter();
+  const html = renderReportHtml(reportId, title, rangeLabel, analytics, footer);
   const w = window.open("", "_blank");
   if (!w) return false;
   w.document.write(html);

@@ -142,7 +142,7 @@ function InvoicesPage() {
                             size="icon"
                             variant="ghost"
                             onClick={() =>
-                              downloadDocumentPdf({
+                              void downloadDocumentPdf({
                                 kind: "Invoice",
                                 doc: i,
                                 customer: i.customerName
@@ -179,7 +179,7 @@ function InvoicesPage() {
                             size="icon"
                             variant="ghost"
                             onClick={() =>
-                              openDocumentPreview({
+                              void openDocumentPreview({
                                 kind: "Invoice",
                                 doc: i,
                                 customer: i.customerName

@@ -22,6 +22,7 @@ import { backupApi } from "./backup-routes.js";
 import { buildDashboardPayload } from "./dashboard.js";
 import { parseListQuery, paginated, buildLikeClause } from "./pagination.js";
 import { validateCustomerContact } from "./customer-validation.js";
+import { loadBusinessSettings, saveBusinessSettings } from "./business-settings.js";
 import {
   jobBoardFilterClause,
   jobBoardColumnClause,
@@ -79,6 +80,21 @@ api.get("/auth/me", requireAuth, (req, res) => {
 api.use(requireAuth);
 
 api.use("/backup", backupApi);
+
+api.get("/settings/business", (_req, res) => {
+  res.json(loadBusinessSettings());
+});
+
+api.patch("/settings/business", (req, res) => {
+  try {
+    const { vatNumber, email, phone } = req.body ?? {};
+    const saved = saveBusinessSettings({ vatNumber, email, phone });
+    res.json(saved);
+  } catch (e) {
+    const status = e.status ?? 500;
+    res.status(status).json({ error: e.message ?? "Could not save settings" });
+  }
+});
 
 api.get("/dashboard", (_req, res) => {
   res.json(buildDashboardPayload(db));

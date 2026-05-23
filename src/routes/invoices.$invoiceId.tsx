@@ -114,10 +114,10 @@ function ViewInvoicePage() {
                 <CreditCard className="size-4 mr-2" />Mark as paid
               </Button>
             )}
-            <Button variant="outline" onClick={() => openDocumentPreview(doc)}>
+            <Button variant="outline" onClick={() => void openDocumentPreview(doc)}>
               <Printer className="size-4 mr-2" />Preview
             </Button>
-            <Button variant="outline" onClick={() => downloadDocumentPdf(doc)}>
+            <Button variant="outline" onClick={() => void downloadDocumentPdf(doc)}>
               <Download className="size-4 mr-2" />Download PDF
             </Button>
           </div>

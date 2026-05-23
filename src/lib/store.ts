@@ -1,6 +1,11 @@
 // Live data layer backed by local Node.js API + SQLite.
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
+import {
+  fetchBusinessSettings,
+  saveBusinessSettings,
+  type BusinessSettings,
+} from "./business-settings-api";
 import type {
   Customer, Vehicle, Job, Invoice, Quote, Mechanic, Part,
 } from "./mockData";
@@ -150,6 +155,22 @@ export function useDashboard() {
     queryKey: ["dashboard"],
     queryFn: () => api.get<DashboardData>("/dashboard"),
     staleTime: 60_000,
+  });
+}
+
+export function useBusinessSettings() {
+  return useQuery({
+    queryKey: ["settings", "business"],
+    queryFn: fetchBusinessSettings,
+    staleTime: 60_000,
+  });
+}
+
+export function useUpdateBusinessSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: BusinessSettings) => saveBusinessSettings(data),
+    onSuccess: () => invalidate(qc, ["settings"]),
   });
 }
 

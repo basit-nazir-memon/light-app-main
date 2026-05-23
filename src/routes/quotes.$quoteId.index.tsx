@@ -249,7 +249,7 @@ function ViewQuotePage() {
                 </Link>
               </Button>
             )}
-            <Button variant="outline" onClick={() => downloadDocumentPdf(doc)}>
+            <Button variant="outline" onClick={() => void downloadDocumentPdf(doc)}>
               <Download className="size-4 mr-2" />Download PDF
             </Button>
             <Button
@@ -295,7 +295,7 @@ function ViewQuotePage() {
                 </Link>
               </Button>
             )}
-            <Button variant="ghost" onClick={() => openDocumentPreview(doc)}>
+            <Button variant="ghost" onClick={() => void openDocumentPreview(doc)}>
               <Printer className="size-4 mr-2" />Preview
             </Button>
           </div>

@@ -17,8 +17,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   DatabaseBackup, Monitor, Moon, Sun, UserCog, Download, Upload,
-  FolderOpen, AlertTriangle, RefreshCw, HardDrive,
+  FolderOpen, AlertTriangle, RefreshCw, HardDrive, Building2,
 } from "lucide-react";
+import { useBusinessSettings, useUpdateBusinessSettings } from "@/lib/store";
+import {
+  hasCustomerContactErrors,
+  sanitizeCustomerPhoneInput,
+  validateCustomerContact,
+} from "@/lib/customer-validation";
 import { useTheme, type ThemeMode } from "@/lib/theme";
 import { useSession } from "@/lib/auth";
 import { loadAdminProfile, saveAdminProfile } from "@/lib/settings-storage";
@@ -65,6 +71,12 @@ function SettingsPage() {
   const [restoreBackupName, setRestoreBackupName] = useState<string | null>(null);
   const [restoreBackupAck, setRestoreBackupAck] = useState(false);
 
+  const { data: businessSettings, isLoading: businessLoading } = useBusinessSettings();
+  const updateBusiness = useUpdateBusinessSettings();
+  const [vatNumber, setVatNumber] = useState("");
+  const [businessEmail, setBusinessEmail] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reloadBackupState = useCallback(async () => {
@@ -91,6 +103,37 @@ function SettingsPage() {
       .catch((e) => toast.error(e.message))
       .finally(() => setLoadingSettings(false));
   }, [reloadBackupState]);
+
+  useEffect(() => {
+    if (businessSettings) {
+      setVatNumber(businessSettings.vatNumber);
+      setBusinessEmail(businessSettings.email);
+      setBusinessPhone(businessSettings.phone);
+    }
+  }, [businessSettings]);
+
+  const saveBusinessDetails = () => {
+    if (!vatNumber.trim()) {
+      toast.error("VAT registration number is required");
+      return;
+    }
+    const contactErrors = validateCustomerContact(businessPhone, businessEmail);
+    if (hasCustomerContactErrors(contactErrors)) {
+      toast.error(contactErrors.phone ?? contactErrors.email ?? "Invalid contact details");
+      return;
+    }
+    updateBusiness.mutate(
+      {
+        vatNumber: vatNumber.trim(),
+        email: businessEmail.trim(),
+        phone: businessPhone.trim(),
+      },
+      {
+        onSuccess: () => toast.success("Business details saved — used on PDF quotes, invoices & reports"),
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
 
   const afterRestore = () => {
     queryClient.clear();
@@ -230,14 +273,18 @@ function SettingsPage() {
       <div className="space-y-6 w-full">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground text-sm mt-1">Appearance, backups, and admin account.</p>
+          <p className="text-muted-foreground text-sm mt-1">Appearance, business details, backups, and admin account.</p>
         </div>
 
         <Tabs defaultValue="theme" className="w-full">
-          <TabsList className="w-full max-w-md grid grid-cols-3 h-auto p-1">
+          <TabsList className="w-full max-w-2xl grid grid-cols-2 sm:grid-cols-4 h-auto p-1">
             <TabsTrigger value="theme" className="gap-2 py-2">
               <Sun className="size-4 shrink-0" />
               <span className="hidden sm:inline">Theme</span>
+            </TabsTrigger>
+            <TabsTrigger value="business" className="gap-2 py-2">
+              <Building2 className="size-4 shrink-0" />
+              <span className="hidden sm:inline">Business</span>
             </TabsTrigger>
             <TabsTrigger value="backups" className="gap-2 py-2">
               <DatabaseBackup className="size-4 shrink-0" />
@@ -286,6 +333,67 @@ function SettingsPage() {
                     </div>
                   </label>
                 </RadioGroup>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="business" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="size-5 text-primary" />
+                  Business details on PDFs
+                </CardTitle>
+                <CardDescription>
+                  VAT number, email, and phone shown in the footer of quotations, invoices, and report PDFs.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="vat-number">VAT registration number</Label>
+                    <Input
+                      id="vat-number"
+                      value={vatNumber}
+                      onChange={(e) => setVatNumber(e.target.value)}
+                      placeholder="GB 123 4567 89"
+                      disabled={businessLoading || updateBusiness.isPending}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="business-email">Business email</Label>
+                    <Input
+                      id="business-email"
+                      type="email"
+                      value={businessEmail}
+                      onChange={(e) => setBusinessEmail(e.target.value)}
+                      placeholder="hello@yovaauto.co.uk"
+                      disabled={businessLoading || updateBusiness.isPending}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="business-phone">Business phone</Label>
+                    <Input
+                      id="business-phone"
+                      type="tel"
+                      value={businessPhone}
+                      onChange={(e) =>
+                        setBusinessPhone(sanitizeCustomerPhoneInput(e.target.value))
+                      }
+                      placeholder="+44 161 555 0199"
+                      disabled={businessLoading || updateBusiness.isPending}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Phone: numbers, spaces, and + only. Email must be a valid address.
+                </p>
+                <Button
+                  onClick={saveBusinessDetails}
+                  disabled={businessLoading || updateBusiness.isPending}
+                >
+                  {updateBusiness.isPending ? "Saving…" : "Save business details"}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
