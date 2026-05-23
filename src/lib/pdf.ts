@@ -36,9 +36,9 @@ function renderQuoteLinesHtml(doc: Quote) {
     .map(
       (p) => `<tr>
         <td class="desc">${esc(p.description)}</td>
-        <td class="right num">${p.qty}</td>
-        <td class="right num">${gbp(p.price)}</td>
-        <td class="right num">${gbp(p.amount)}</td>
+        <td class="num">${p.qty}</td>
+        <td class="num">${gbp(p.price)}</td>
+        <td class="num">${gbp(p.amount)}</td>
       </tr>`,
     )
     .join("");
@@ -50,9 +50,9 @@ function renderQuoteLinesHtml(doc: Quote) {
       const priceCell = l.fixedRate ? "Fixed rate" : `${gbp(l.rate)}/hr`;
       return `<tr>
         <td class="desc">${esc(l.description)}</td>
-        <td class="right num">${qtyCell}</td>
-        <td class="right num">${priceCell}</td>
-        <td class="right num">${gbp(l.amount)}</td>
+        <td class="num">${qtyCell}</td>
+        <td class="num">${priceCell}</td>
+        <td class="num">${gbp(l.amount)}</td>
       </tr>`;
     })
     .join("");
@@ -60,7 +60,7 @@ function renderQuoteLinesHtml(doc: Quote) {
   const lineCols = `<colgroup>
     <col class="col-desc" /><col class="col-qty" /><col class="col-price" /><col class="col-amount" />
   </colgroup>`;
-  const lineHead = `<thead><tr><th>Description</th><th class="right num">Qty</th><th class="right num">Price</th><th class="right num">Amount</th></tr></thead>`;
+  const lineHead = `<thead><tr><th class="desc">Description</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr></thead>`;
 
   return `
     <section class="table-section avoid-break">
@@ -110,10 +110,10 @@ function renderDoc({ kind, doc, customer: cust, vehicle: veh }: Doc, footer: Pdf
           <colgroup>
             <col class="col-desc" /><col class="col-qty" /><col class="col-price" /><col class="col-amount" />
           </colgroup>
-          <thead><tr><th>Description</th><th class="right num">Qty</th><th class="right num">Unit</th><th class="right num">Amount</th></tr></thead>
+          <thead><tr><th class="desc">Description</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Amount</th></tr></thead>
           <tbody>
-            ${doc.parts.map((p) => `<tr><td class="desc">${esc(p.name)}</td><td class="right num">${p.qty}</td><td class="right num">${gbp(p.price)}</td><td class="right num">${gbp(p.qty * p.price)}</td></tr>`).join("")}
-            ${doc.labour > 0 ? `<tr><td class="desc">Labour</td><td class="right num">—</td><td class="right num">—</td><td class="right num">${gbp(doc.labour)}</td></tr>` : ""}
+            ${doc.parts.map((p) => `<tr><td class="desc">${esc(p.name)}</td><td class="num">${p.qty}</td><td class="num">${gbp(p.price)}</td><td class="num">${gbp(p.qty * p.price)}</td></tr>`).join("")}
+            ${doc.labour > 0 ? `<tr><td class="desc">Labour</td><td class="num">—</td><td class="num">—</td><td class="num">${gbp(doc.labour)}</td></tr>` : ""}
           </tbody>
         </table>
       </section>`;
@@ -190,24 +190,36 @@ function renderDoc({ kind, doc, customer: cust, vehicle: veh }: Doc, footer: Pdf
     line-height: 1.2;
   }
   table.lines { width: 100%; border-collapse: collapse; font-size: 8pt; table-layout: fixed; }
+  table.lines th,
+  table.lines td {
+    padding: 3px 4px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+    line-height: 1.3;
+  }
   table.lines th {
-    text-align: left;
     font-size: 6.5pt;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: #64748b;
-    padding: 3px 4px;
     border-bottom: 1px solid #94a3b8;
     line-height: 1.2;
   }
-  table.lines td { padding: 3px 4px; border-bottom: 1px solid #e2e8f0; vertical-align: top; line-height: 1.3; }
-  table.lines td.desc { word-wrap: break-word; overflow-wrap: break-word; }
-  table.lines .num { white-space: nowrap; }
+  table.lines th.desc,
+  table.lines td.desc {
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  table.lines th.num,
+  table.lines td.num {
+    text-align: right;
+    white-space: nowrap;
+  }
   table.lines col.col-desc { width: 48%; }
   table.lines col.col-qty { width: 10%; }
   table.lines col.col-price { width: 22%; }
   table.lines col.col-amount { width: 20%; }
-  .right { text-align: right; }
   .muted { font-size: 8pt; color: #94a3b8; font-style: italic; }
   .totals-wrap { display: flex; justify-content: flex-end; margin-top: 8px; }
   .totals {
