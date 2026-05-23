@@ -63,6 +63,11 @@ const toJob = (r: Row): Job => {
     eta: (r.eta as string) ?? "",
     createdAt: (r.created_at as string) ?? "",
     completedAt: (r.completed_at as string) ?? undefined,
+    customerName: (r.customer_name as string) ?? undefined,
+    vehicleReg: (r.vehicle_reg as string) ?? undefined,
+    vehicleMake: (r.vehicle_make as string) ?? undefined,
+    vehicleModel: (r.vehicle_model as string) ?? undefined,
+    vehicleYear: (r.vehicle_year as number) ?? undefined,
   };
 };
 const toInv = (r: Row): Invoice => ({

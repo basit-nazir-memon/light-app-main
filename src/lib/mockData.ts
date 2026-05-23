@@ -110,6 +110,12 @@ export type Job = {
   eta: string;
   createdAt: string;
   completedAt?: string;
+  /** Populated on list/board API responses */
+  customerName?: string;
+  vehicleReg?: string;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehicleYear?: number;
 };
 
 export type InvoiceLabourLine = {

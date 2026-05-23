@@ -254,17 +254,23 @@ function jobListSearchClause(search) {
   );
 }
 
+const JOB_BOARD_SELECT = `SELECT j.*, c.name AS customer_name, v.reg AS vehicle_reg,
+  v.make AS vehicle_make, v.model AS vehicle_model, v.year AS vehicle_year`;
+
 api.get("/jobs/board", (_req, res) => {
   const order = "ORDER BY COALESCE(j.completed_at, j.created_at) DESC";
+  const join = `FROM jobs j
+    LEFT JOIN customers c ON c.id = j.customer_id
+    LEFT JOIN vehicles v ON v.id = j.vehicle_id`;
   const created = db
     .prepare(
-      `SELECT j.* FROM jobs j WHERE ${jobBoardColumnClause("created")} ORDER BY j.created_at DESC`,
+      `${JOB_BOARD_SELECT} ${join} WHERE ${jobBoardColumnClause("created")} ORDER BY j.created_at DESC`,
     )
     .all()
     .map(normalizeJobRow);
   const workInProgress = db
     .prepare(
-      `SELECT j.* FROM jobs j WHERE ${jobBoardColumnClause("wip")} ORDER BY j.created_at DESC`,
+      `${JOB_BOARD_SELECT} ${join} WHERE ${jobBoardColumnClause("wip")} ORDER BY j.created_at DESC`,
     )
     .all()
     .map(normalizeJobRow);
@@ -273,7 +279,7 @@ api.get("/jobs/board", (_req, res) => {
     .get().n;
   const completedRecent = db
     .prepare(
-      `SELECT j.* FROM jobs j WHERE ${jobBoardColumnClause("completed")} ${order} LIMIT ?`,
+      `${JOB_BOARD_SELECT} ${join} WHERE ${jobBoardColumnClause("completed")} ${order} LIMIT ?`,
     )
     .all(COMPLETED_RECENT_LIMIT)
     .map(normalizeJobRow);

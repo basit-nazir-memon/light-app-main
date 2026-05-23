@@ -1,38 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Download, Printer, Eye } from "lucide-react";
-import { findCustomer, findVehicle, invoiceTotal } from "@/lib/mockData";
-import { useInvoices, useCustomers, useVehicles } from "@/lib/store";
+import { invoiceTotal } from "@/lib/mockData";
+import { useInvoicesList, useInvoiceStats } from "@/lib/store";
 import { gbp, fmtDate } from "@/lib/currency";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { downloadDocumentPdf, openDocumentPreview } from "@/lib/pdf";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { ListPagination } from "@/components/ListPagination";
 
 export const Route = createFileRoute("/invoices/")({ component: InvoicesPage });
 
+const PAGE_SIZE = 20;
+
 function InvoicesPage() {
-  const { data: invoices = [] } = useInvoices();
-  const { data: customers = [] } = useCustomers();
-  const { data: vehicles = [] } = useVehicles();
-  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"all" | "Paid" | "Unpaid" | "Overdue" | "Partial">("all");
+  const debouncedSearch = useDebouncedValue(search);
 
-  const filtered = invoices.filter((i) =>
-    (tab === "all" || i.status === tab) &&
-    [i.number, findCustomer(customers, i.customerId)?.name].join(" ").toLowerCase().includes(q.toLowerCase()),
-  );
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, tab]);
 
-  const stats = {
-    total: invoices.reduce((s, i) => s + invoiceTotal(i).total, 0),
-    paid: invoices.filter((i) => i.status === "Paid").reduce((s, i) => s + invoiceTotal(i).total, 0),
-    unpaid: invoices.filter((i) => i.status !== "Paid").reduce((s, i) => s + invoiceTotal(i).total, 0),
-    overdue: invoices.filter((i) => i.status === "Overdue").reduce((s, i) => s + invoiceTotal(i).total, 0),
-  };
+  const { data: stats } = useInvoiceStats();
+  const { data, isLoading } = useInvoicesList({
+    page,
+    limit: PAGE_SIZE,
+    search: debouncedSearch,
+    status: tab === "all" ? undefined : tab,
+  });
+  const invoices = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <AppLayout>
@@ -40,16 +46,18 @@ function InvoicesPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-2xl md:text-3xl font-bold">Invoices</h1>
-            <p className="text-muted-foreground text-sm mt-1">Track payments and generate professional PDF invoices.</p>
+            <p className="text-muted-foreground text-sm mt-1">
+              Track payments and generate professional PDF invoices.
+            </p>
           </div>
         </div>
 
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Total billed", value: gbp(stats.total) },
-            { label: "Paid", value: gbp(stats.paid), accent: "text-success" },
-            { label: "Outstanding", value: gbp(stats.unpaid), accent: "text-warning" },
-            { label: "Overdue", value: gbp(stats.overdue), accent: "text-destructive" },
+            { label: "Total billed", value: gbp(stats?.total ?? 0) },
+            { label: "Paid", value: gbp(stats?.paid ?? 0), accent: "text-success" },
+            { label: "Outstanding", value: gbp(stats?.unpaid ?? 0), accent: "text-warning" },
+            { label: "Overdue", value: gbp(stats?.overdue ?? 0), accent: "text-destructive" },
           ].map((s) => (
             <Card key={s.label} className="p-4">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">{s.label}</div>
@@ -71,7 +79,12 @@ function InvoicesPage() {
             </Tabs>
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input placeholder="Search invoices…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
+              <Input
+                placeholder="Search invoices…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
             </div>
           </div>
 
@@ -89,37 +102,128 @@ function InvoicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((i) => {
-                const { total } = invoiceTotal(i);
-                const cust = findCustomer(customers, i.customerId);
-                const veh = findVehicle(vehicles, i.vehicleId);
-                return (
-                  <TableRow key={i.id} className="hover:bg-muted/30">
-                    <TableCell className="font-mono text-sm font-semibold text-primary">
-                      <Link to="/invoices/$invoiceId" params={{ invoiceId: i.id }} className="hover:underline">
-                        {i.number}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{cust?.name}</TableCell>
-                    <TableCell className="text-sm">{veh?.reg}</TableCell>
-                    <TableCell className="text-sm">{fmtDate(i.issuedAt)}</TableCell>
-                    <TableCell className="text-sm">{fmtDate(i.dueDate)}</TableCell>
-                    <TableCell className="text-right font-semibold">{gbp(total)}</TableCell>
-                    <TableCell><StatusBadge status={i.status} /></TableCell>
-                    <TableCell className="text-right">
-                      <div className="inline-flex gap-1">
-                        <Button size="icon" variant="ghost" asChild>
-                          <Link to="/invoices/$invoiceId" params={{ invoiceId: i.id }}><Eye className="size-4" /></Link>
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => downloadDocumentPdf({ kind: "Invoice", doc: i, customer: cust, vehicle: veh })}><Download className="size-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => openDocumentPreview({ kind: "Invoice", doc: i, customer: cust, vehicle: veh })}><Printer className="size-4" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    Loading…
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading &&
+                invoices.map((i) => {
+                  const { total: lineTotal } = invoiceTotal(i);
+                  return (
+                    <TableRow key={i.id} className="hover:bg-muted/30">
+                      <TableCell className="font-mono text-sm font-semibold text-primary">
+                        <Link
+                          to="/invoices/$invoiceId"
+                          params={{ invoiceId: i.id }}
+                          className="hover:underline"
+                        >
+                          {i.number}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{i.customerName}</TableCell>
+                      <TableCell className="text-sm">{i.vehicleReg}</TableCell>
+                      <TableCell className="text-sm">{fmtDate(i.issuedAt)}</TableCell>
+                      <TableCell className="text-sm">{fmtDate(i.dueDate)}</TableCell>
+                      <TableCell className="text-right font-semibold">{gbp(lineTotal)}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={i.status} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="inline-flex gap-1">
+                          <Button size="icon" variant="ghost" asChild>
+                            <Link to="/invoices/$invoiceId" params={{ invoiceId: i.id }}>
+                              <Eye className="size-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              downloadDocumentPdf({
+                                kind: "Invoice",
+                                doc: i,
+                                customer: i.customerName
+                                  ? {
+                                      id: i.customerId,
+                                      name: i.customerName,
+                                      phone: "",
+                                      email: "",
+                                      address: "",
+                                      createdAt: "",
+                                    }
+                                  : undefined,
+                                vehicle: i.vehicleReg
+                                  ? {
+                                      id: i.vehicleId,
+                                      reg: i.vehicleReg,
+                                      make: i.vehicleMake ?? "",
+                                      model: i.vehicleModel ?? "",
+                                      year: 0,
+                                      vin: "",
+                                      mileage: 0,
+                                      fuel: "Petrol",
+                                      transmission: "Manual",
+                                      customerId: i.customerId,
+                                      motExpiry: "",
+                                    }
+                                  : undefined,
+                              })
+                            }
+                          >
+                            <Download className="size-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              openDocumentPreview({
+                                kind: "Invoice",
+                                doc: i,
+                                customer: i.customerName
+                                  ? {
+                                      id: i.customerId,
+                                      name: i.customerName,
+                                      phone: "",
+                                      email: "",
+                                      address: "",
+                                      createdAt: "",
+                                    }
+                                  : undefined,
+                                vehicle: i.vehicleReg
+                                  ? {
+                                      id: i.vehicleId,
+                                      reg: i.vehicleReg,
+                                      make: i.vehicleMake ?? "",
+                                      model: i.vehicleModel ?? "",
+                                      year: 0,
+                                      vin: "",
+                                      mileage: 0,
+                                      fuel: "Petrol",
+                                      transmission: "Manual",
+                                      customerId: i.customerId,
+                                      motExpiry: "",
+                                    }
+                                  : undefined,
+                              })
+                            }
+                          >
+                            <Printer className="size-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
             </TableBody>
           </Table>
+          {!isLoading && invoices.length === 0 && (
+            <div className="p-12 text-center text-sm text-muted-foreground">No invoices found.</div>
+          )}
+
+          <ListPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </Card>
       </div>
     </AppLayout>
