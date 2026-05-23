@@ -13,8 +13,8 @@ export const Route = createFileRoute("/login")({ component: LoginPage });
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@yovaauto.co.uk");
-  const [password, setPassword] = useState("admin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -108,20 +108,12 @@ function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox defaultChecked /> <span>Remember me</span>
-              </label>
-              <button type="button" className="text-primary hover:underline">Forgot password?</button>
-            </div>
 
             <Button type="submit" disabled={loading} className="w-full h-11 text-base font-semibold shadow-[var(--shadow-elegant)]">
               {loading ? "Signing in…" : "Sign in"}
             </Button>
 
-            <p className="text-xs text-center text-muted-foreground pt-2">
-              Admin-only workspace · Demo credentials pre-filled
-            </p>
+            
           </form>
         </div>
       </div>

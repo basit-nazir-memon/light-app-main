@@ -70,9 +70,18 @@ Change ports in `setup\config.ps1` and re-run setup if needed.
 
 ## Troubleshooting
 
+### `Cannot find package 'express'` or empty `node_modules`
+
+Packages were not installed. On the project folder:
+
+1. Run **`YovaAuto-Repair.bat`** (or `SETUP-WINDOWS.bat` for a full setup), **or**
+2. In PowerShell: `powershell -File setup\scripts\ensure-dependencies.ps1`
+
+Watch **`setup\logs\npm-install.log`** for errors. Setup now verifies `express` and `vite` exist before starting services.
+
 ### `npm install` fails on `better-sqlite3`
 
-Install [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) (x64), then run `setup\Setup-YovaAuto.bat` again.
+Install [Microsoft Visual C++ Redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) (x64), then run **`YovaAuto-Repair.bat`** or `setup\Setup-YovaAuto.bat` again.
 
 ### `Cannot find module dist/server/server.js` after setup
 

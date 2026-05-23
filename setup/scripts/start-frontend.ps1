@@ -4,25 +4,24 @@
 $root = Get-ProjectRoot
 $log = Join-Path (Get-LogsDir) "frontend.log"
 
+if (-not (Test-NodeReady)) {
+  Write-Log "Portable Node missing. Run SETUP-WINDOWS.bat or setup\Setup-YovaAuto.bat first." "ERROR"
+  exit 1
+}
+
+if (-not (Test-FrontendNodeModules) -or -not (Test-FrontendBuild)) {
+  Write-Log "Frontend packages or build missing — preparing before start..."
+  & (Join-Path $PSScriptRoot "ensure-dependencies.ps1")
+}
+
 if (Test-PortListening $SetupConfig.FrontendPort) {
   Write-Log "Frontend already listening on port $($SetupConfig.FrontendPort)"
   exit 0
 }
 
-$dist = Join-Path $root "dist"
-if (-not (Test-Path $dist)) {
-  Write-Log "Frontend build missing (dist/). Run setup or: npm run build" "ERROR"
-  exit 1
-}
-
-$serverIndex = Join-Path $root "dist\server\index.js"
-$serverPreview = Join-Path $root "dist\server\server.js"
-if ((Test-Path $serverIndex) -and -not (Test-Path $serverPreview)) {
-  Copy-Item $serverIndex $serverPreview -Force
-  Write-Log "Created dist/server/server.js for preview"
-}
-if (-not (Test-Path $serverPreview)) {
-  Write-Log "dist/server/server.js missing. Run: npm run build" "ERROR"
+Ensure-PreviewServerEntry -ProjectRoot $root
+if (-not (Test-FrontendBuild)) {
+  Write-Log "Frontend build missing (dist/server). Run SETUP-WINDOWS.bat" "ERROR"
   exit 1
 }
 

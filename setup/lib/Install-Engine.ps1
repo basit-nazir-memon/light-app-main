@@ -114,27 +114,28 @@ function Invoke-YovaAutoInstall {
     Complete-Step "config" "Configuration saved" 25
 
     Set-Step "npm-frontend" "Installing frontend packages..." 28
-    Send-Progress -Indeterminate -Message "npm install - frontend (please wait)..."
-    Invoke-ProjectNpm -Arguments @("install") -WorkingDirectory $ProjectRoot
+    Send-Progress -Indeterminate -Message "npm install - frontend (please wait, 2-5 min)..."
+    Invoke-ProjectNpm -Arguments @("install", "--no-fund", "--no-audit") -WorkingDirectory $ProjectRoot
+    if (-not (Test-FrontendNodeModules)) {
+      throw "Frontend npm install failed — node_modules\vite not found. See setup\logs\npm-install.log"
+    }
     Complete-Step "npm-frontend" "Frontend packages installed" 45
 
     Set-Step "npm-backend" "Installing backend packages..." 48
-    Send-Progress -Indeterminate -Message "npm install - backend (please wait)..."
-    Invoke-ProjectNpm -Arguments @("install") -WorkingDirectory (Join-Path $ProjectRoot "backend")
+    Send-Progress -Indeterminate -Message "npm install - backend (please wait, 1-3 min)..."
+    Invoke-ProjectNpm -Arguments @("install", "--no-fund", "--no-audit") -WorkingDirectory (Join-Path $ProjectRoot "backend")
+    if (-not (Test-BackendNodeModules)) {
+      throw "Backend npm install failed — node_modules\express not found. See setup\logs\npm-install.log (install VC++ Redistributable x64 if better-sqlite3 failed)."
+    }
     Complete-Step "npm-backend" "Backend packages installed" 58
 
     Set-Step "build" "Building production frontend..." 62
-    Send-Progress -Indeterminate -Message "Running production build..."
+    Send-Progress -Indeterminate -Message "Running production build (1-3 min)..."
     $env:VITE_API_URL = $apiUrl
     Invoke-ProjectNpm -Arguments @("run", "build") -WorkingDirectory $ProjectRoot
-    if (-not (Test-Path (Join-Path $ProjectRoot "dist"))) {
-      throw "Build failed - dist folder not found. See setup\logs\yova-auto.log"
-    }
-    $serverIndex = Join-Path $ProjectRoot "dist\server\index.js"
-    $serverPreview = Join-Path $ProjectRoot "dist\server\server.js"
-    if (Test-Path $serverIndex) {
-      Copy-Item $serverIndex $serverPreview -Force
-      Write-Log "Created dist/server/server.js for vite preview"
+    Ensure-PreviewServerEntry -ProjectRoot $ProjectRoot
+    if (-not (Test-FrontendBuild)) {
+      throw "Build failed - dist\server\server.js not found. See setup\logs\npm-install.log"
     }
     Complete-Step "build" "Application built successfully" 72
 
@@ -169,6 +170,19 @@ function Invoke-YovaAutoInstall {
     $statusBat = Join-Path $ProjectRoot "YovaAuto-Status.bat"
     $bt = $SetupConfig.BackendTaskName
     $ft = $SetupConfig.FrontendTaskName
+    Write-LauncherBat -Path (Join-Path $ProjectRoot "YovaAuto-Repair.bat") -Lines @(
+      "@echo off"
+      "title $($SetupConfig.AppName) - Repair packages"
+      "cd /d `"%~dp0`""
+      "echo Installing npm packages and building the app if needed..."
+      "echo This may take several minutes. See setup\logs\npm-install.log"
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"%~dp0setup\scripts\ensure-dependencies.ps1`""
+      "if errorlevel 1 ( echo. & echo Repair failed. See setup\logs\npm-install.log & pause & exit /b 1 )"
+      "echo."
+      "echo Repair complete. Run YovaAuto-Open.bat to start the app."
+      "pause"
+      "exit /b 0"
+    )
     Write-LauncherBat -Path $statusBat -Lines @(
       "@echo off"
       "title $($SetupConfig.AppName) - Service Status"
@@ -214,9 +228,21 @@ function Invoke-YovaAutoInstall {
     Set-Content -Path (Join-Path $SetupDir ".installed.json") -Value $marker -Encoding UTF8
 
     Set-Step "services" "Starting API and web interface..." 94
-    Send-Progress -Indeterminate -Message "Starting services..."
+    Send-Progress -Indeterminate -Message "Verifying packages and starting services..."
+    & (Join-Path $SetupDir "scripts\ensure-dependencies.ps1")
     & $startScript
-    Start-Sleep -Seconds 4
+    Start-Sleep -Seconds 3
+    if (-not (Wait-ForHealth -TimeoutSeconds 90)) {
+      throw "API did not start. Check setup\logs\backend.err.log and setup\logs\npm-install.log"
+    }
+    $feDeadline = (Get-Date).AddSeconds(120)
+    while ((Get-Date) -lt $feDeadline) {
+      if (Test-PortListening $SetupConfig.FrontendPort) { break }
+      Start-Sleep -Seconds 2
+    }
+    if (-not (Test-PortListening $SetupConfig.FrontendPort)) {
+      throw "Web interface did not start on port $($SetupConfig.FrontendPort). Check setup\logs\frontend.err.log"
+    }
     Complete-Step "services" "Services running" 98
 
     Send-Progress -Percent 100 -Message "Setup complete!" -Complete -StepState "done"

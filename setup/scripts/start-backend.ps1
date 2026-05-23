@@ -5,6 +5,16 @@ $root = Get-ProjectRoot
 $backend = Join-Path $root "backend"
 $log = Join-Path (Get-LogsDir) "backend.log"
 
+if (-not (Test-NodeReady)) {
+  Write-Log "Portable Node missing. Run SETUP-WINDOWS.bat or setup\Setup-YovaAuto.bat first." "ERROR"
+  exit 1
+}
+
+if (-not (Test-BackendNodeModules)) {
+  Write-Log "Backend packages missing — installing before start..."
+  & (Join-Path $PSScriptRoot "ensure-dependencies.ps1") -BackendOnly
+}
+
 if (Test-PortListening $SetupConfig.BackendPort) {
   Write-Log "Backend already listening on port $($SetupConfig.BackendPort)"
   exit 0

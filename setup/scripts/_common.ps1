@@ -77,17 +77,72 @@ function Download-File([string]$Url, [string]$Dest) {
   Invoke-WebRequest -Uri $Url -OutFile $Dest -UseBasicParsing
 }
 
+function Get-NpmCliJs {
+  Join-Path (Get-NodeHome) "node_modules\npm\bin\npm-cli.js"
+}
+
+function Test-BackendNodeModules {
+  Test-Path (Join-Path (Join-Path (Get-ProjectRoot) "backend") "node_modules\express\package.json")
+}
+
+function Test-FrontendNodeModules {
+  Test-Path (Join-Path (Get-ProjectRoot) "node_modules\vite\package.json")
+}
+
+function Test-FrontendBuild {
+  $root = Get-ProjectRoot
+  $preview = Join-Path $root "dist\server\server.js"
+  $index = Join-Path $root "dist\server\index.js"
+  (Test-Path $preview) -or (Test-Path $index)
+}
+
+function Ensure-PreviewServerEntry {
+  param([string]$ProjectRoot = (Get-ProjectRoot))
+  $serverIndex = Join-Path $ProjectRoot "dist\server\index.js"
+  $serverPreview = Join-Path $ProjectRoot "dist\server\server.js"
+  if ((Test-Path $serverIndex) -and -not (Test-Path $serverPreview)) {
+    Copy-Item $serverIndex $serverPreview -Force
+    Write-Log "Created dist/server/server.js for preview"
+  }
+}
+
 function Invoke-ProjectNpm {
   param(
     [Parameter(Mandatory = $true)][string[]]$Arguments,
     [string]$WorkingDirectory = (Get-ProjectRoot)
   )
   Add-NodeToPath
-  $npm = Get-NpmCmd
-  if (-not (Test-Path $npm)) { throw "Node/npm not installed. Run setup first." }
+  $node = Get-NodeExe
+  $npmCli = Get-NpmCliJs
+  if (-not (Test-Path $node)) { throw "Node not installed. Run setup first." }
+  if (-not (Test-Path $npmCli)) { throw "npm-cli.js not found in portable Node. Re-run setup (install-node.ps1)." }
+
+  $logFile = Join-Path (Get-LogsDir) "npm-install.log"
+  $stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+  Add-Content -Path $logFile -Value "`n=== [$stamp] npm $($Arguments -join ' ') in $WorkingDirectory ===" -Encoding UTF8
+
   Write-Log "npm $($Arguments -join ' ') (in $WorkingDirectory)"
-  & $npm @Arguments
-  if ($LASTEXITCODE -ne 0) { throw "npm failed with exit code $LASTEXITCODE" }
+
+  $argParts = @("`"$npmCli`"") + ($Arguments | ForEach-Object {
+    if ($_ -match '[\s"]') { "`"$($_ -replace '"', '\"')`"" } else { $_ }
+  })
+  $cmdLine = "cd /d `"$WorkingDirectory`" && `"$node`" $($argParts -join ' ') >> `"$logFile`" 2>&1"
+  $proc = Start-Process `
+    -FilePath "cmd.exe" `
+    -ArgumentList @("/c", $cmdLine) `
+    -Wait `
+    -PassThru `
+    -NoNewWindow
+
+  if ($proc.ExitCode -ne 0) {
+    $tail = @()
+    if (Test-Path $logFile) {
+      $tail = Get-Content $logFile -Tail 15 -ErrorAction SilentlyContinue
+    }
+    $hint = $tail -join " | "
+    if ($hint.Length -gt 400) { $hint = $hint.Substring(0, 400) + "..." }
+    throw "npm failed (exit $($proc.ExitCode)). See setup\logs\npm-install.log. $hint"
+  }
 }
 
 function Test-PortListening([int]$Port) {
