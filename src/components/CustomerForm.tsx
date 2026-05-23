@@ -1,9 +1,16 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Customer } from "@/lib/mockData";
+import {
+  hasCustomerContactErrors,
+  sanitizeCustomerPhoneInput,
+  validateCustomerContact,
+  type CustomerContactErrors,
+} from "@/lib/customer-validation";
 
 export type CustomerFormValues = {
   name: string;
@@ -40,16 +47,30 @@ type Props = {
 };
 
 export function CustomerForm({ value, onChange, onSubmit, submitLabel, loading }: Props) {
-  const set = (patch: Partial<CustomerFormValues>) => onChange({ ...value, ...patch });
+  const [errors, setErrors] = useState<CustomerContactErrors>({});
+  const set = (patch: Partial<CustomerFormValues>) => {
+    onChange({ ...value, ...patch });
+    if (patch.phone !== undefined && errors.phone) {
+      setErrors((e) => ({ ...e, phone: undefined }));
+    }
+    if (patch.email !== undefined && errors.email) {
+      setErrors((e) => ({ ...e, email: undefined }));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const nextErrors = validateCustomerContact(value.phone, value.email);
+    if (hasCustomerContactErrors(nextErrors)) {
+      setErrors(nextErrors);
+      return;
+    }
+    setErrors({});
+    onSubmit();
+  };
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-      className="space-y-6 max-w-3xl"
-    >
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
       <Card>
         <CardHeader>
           <CardTitle>Contact details</CardTitle>
@@ -62,11 +83,28 @@ export function CustomerForm({ value, onChange, onSubmit, submitLabel, loading }
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label>Phone</Label>
-              <Input value={value.phone} onChange={(e) => set({ phone: e.target.value })} />
+              <Input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="+44 7700 900123"
+                value={value.phone}
+                onChange={(e) => set({ phone: sanitizeCustomerPhoneInput(e.target.value) })}
+                aria-invalid={Boolean(errors.phone)}
+              />
+              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
             </div>
             <div className="grid gap-1.5">
               <Label>Email</Label>
-              <Input type="email" value={value.email} onChange={(e) => set({ email: e.target.value })} />
+              <Input
+                type="email"
+                autoComplete="email"
+                placeholder="name@example.com"
+                value={value.email}
+                onChange={(e) => set({ email: e.target.value })}
+                aria-invalid={Boolean(errors.email)}
+              />
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
           </div>
           <div className="grid gap-1.5">

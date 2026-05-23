@@ -20,6 +20,12 @@ import { fmtDate } from "@/lib/currency";
 import { toast } from "sonner";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { ListPagination } from "@/components/ListPagination";
+import {
+  hasCustomerContactErrors,
+  sanitizeCustomerPhoneInput,
+  validateCustomerContact,
+  type CustomerContactErrors,
+} from "@/lib/customer-validation";
 
 export const Route = createFileRoute("/customers/")({ component: CustomersPage });
 
@@ -193,8 +199,21 @@ function CustomersPage() {
 function AddCustomerDialog({ onAdd }: { onAdd: (c: Omit<Customer, "id" | "createdAt">) => void }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", notes: "" });
+  const [errors, setErrors] = useState<CustomerContactErrors>({});
+
+  const resetForm = () => {
+    setForm({ name: "", phone: "", email: "", address: "", notes: "" });
+    setErrors({});
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) resetForm();
+      }}
+    >
       <DialogTrigger asChild>
         <Button className="shadow-[var(--shadow-elegant)]">
           <Plus className="size-4 mr-2" />
@@ -213,11 +232,32 @@ function AddCustomerDialog({ onAdd }: { onAdd: (c: Omit<Customer, "id" | "create
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label>Phone</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <Input
+                type="tel"
+                inputMode="tel"
+                placeholder="+44 7700 900123"
+                value={form.phone}
+                onChange={(e) => {
+                  setForm({ ...form, phone: sanitizeCustomerPhoneInput(e.target.value) });
+                  if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+                }}
+                aria-invalid={Boolean(errors.phone)}
+              />
+              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
             </div>
             <div className="grid gap-1.5">
               <Label>Email</Label>
-              <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <Input
+                type="email"
+                placeholder="name@example.com"
+                value={form.email}
+                onChange={(e) => {
+                  setForm({ ...form, email: e.target.value });
+                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                aria-invalid={Boolean(errors.email)}
+              />
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
           </div>
           <div className="grid gap-1.5">
@@ -235,10 +275,20 @@ function AddCustomerDialog({ onAdd }: { onAdd: (c: Omit<Customer, "id" | "create
           </Button>
           <Button
             onClick={() => {
-              if (!form.name) return toast.error("Name required");
-              onAdd(form);
+              if (!form.name.trim()) return toast.error("Name required");
+              const nextErrors = validateCustomerContact(form.phone, form.email);
+              if (hasCustomerContactErrors(nextErrors)) {
+                setErrors(nextErrors);
+                return;
+              }
+              onAdd({
+                ...form,
+                name: form.name.trim(),
+                phone: form.phone.trim(),
+                email: form.email.trim(),
+              });
               setOpen(false);
-              setForm({ name: "", phone: "", email: "", address: "", notes: "" });
+              resetForm();
             }}
           >
             Save

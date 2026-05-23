@@ -21,6 +21,7 @@ import {
 import { backupApi } from "./backup-routes.js";
 import { buildDashboardPayload } from "./dashboard.js";
 import { parseListQuery, paginated, buildLikeClause } from "./pagination.js";
+import { validateCustomerContact } from "./customer-validation.js";
 import {
   jobBoardFilterClause,
   jobBoardColumnClause,
@@ -105,6 +106,8 @@ api.get("/customers", (req, res) => {
 api.post("/customers", (req, res) => {
   const { name, phone, email, address, notes } = req.body ?? {};
   if (!name) return res.status(400).json({ error: "Name is required" });
+  const contactErrors = validateCustomerContact(phone, email);
+  if (contactErrors.length) return res.status(400).json({ error: contactErrors[0] });
   const id = randomUUID();
   db.prepare(
     `INSERT INTO customers (id, name, phone, email, address, notes)
@@ -125,6 +128,8 @@ api.patch("/customers/:id", (req, res) => {
   if (!existing) return res.status(404).json({ error: "Not found" });
   const { name, phone, email, address, notes } = req.body ?? {};
   if (!name?.trim()) return res.status(400).json({ error: "Name is required" });
+  const contactErrors = validateCustomerContact(phone, email);
+  if (contactErrors.length) return res.status(400).json({ error: contactErrors[0] });
   db.prepare(
     `UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, notes = ? WHERE id = ?`,
   ).run(
